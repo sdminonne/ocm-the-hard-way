@@ -10,64 +10,35 @@ command -v docker >/dev/null 2>&1 || { echo >&2 "can't find docker. Aborting. ";
 
 docker run hello-world >/dev/null || { echo >&2 "cannot run docker. Aborting. "; exit 1; }
 
+
 echo_red() {
-  local RED='\033[0;31m'
-  NC='\033[0m'
-  printf "${RED}$1${NC}\n"
+  printf "\033[0;31m%s\033[0m" "$1"
 }
 
 echo_yellow() {
-  local YELLOW='\033[1;33m'
-  NC='\033[0m'
-  printf "${YELLOW}$1${NC}\n"
+  printf "\033[1;33m%s\033[0m\n" "$1"
 }
 
 echo_green() {
-  local GREEN='\033[0;32m'
-  NC='\033[0m'
-  printf "${GREEN}$1${NC}\n"
+  printf "\033[0;32m%s\033[0m\n" "$1"
 }
-
-#TODO check run docker run hello-world 
 
 id -Gn | grep -q docker  >/dev/null 2>&1  || { echo >&2 "Not in group docker. Aborting."; exit 1; }
 
 ROOTDIR=$(git rev-parse --show-toplevel)
 
-
 export HUB_KUBECONFIG=${ROOTDIR}/hub-kubeconfig
-export HUB_KUBE_CONTEXT=kind-hub
-
-
-echo_red() {
-  local RED='\033[0;31m'
-  NC='\033[0m'
-  printf "${RED}$1${NC}\n"
-}
-
-echo_yellow() {
-  local YELLOW='\033[1;33m'
-  NC='\033[0m'
-  printf "${YELLOW}$1${NC}\n"
-}
-
-echo_green() {
-  local GREEN='\033[0;32m'
-  NC='\033[0m'
-  printf "${GREEN}$1${NC}\n"
-}
 
 
 wait_until() {
-
   local script=$1
   local wait=${2:-.5}
   local timeout=${3:-10}
   local i
-  
-  script_pretty_name=$(echo "$script" | sed 's/_/ /g')
+
+  script_pretty_name=${script//_/ }
   times=$(echo "($(bc <<< "scale=2;$timeout/$wait")+0.5)/1" | bc)
-  for i in $(seq 1 "$times"); do
+  for i in $(seq 1 "${times}"); do
       local out=$($script)
       if [ "$out" == "0" ]; then
 	  echo_green "${script_pretty_name}: OK"
@@ -85,8 +56,7 @@ namespace_active() {
   namespace=$2
 
   rv="1"
-  phase=$(kubectl --context ${kubecontext} get ns $namespace -o jsonpath='{.status.phase}' 2> /dev/null)
-
+  phase=$(kubectl --context "${kubecontext}" get ns "$namespace" -o jsonpath='{.status.phase}' 2> /dev/null)
   if [ "$phase" == "Active" ]; then
       rv="0"
   fi
@@ -100,12 +70,13 @@ csr_submitted() {
     kubecontext=$1
     clustername=$2
 
+    rv="0"
     found=$(kubectl --context=kind-hub get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$clustername-')].metadata.name}")
     if [  -z "$found" ]; then
-	echo "1"
+	    rv="1"
     fi
-    echo "0"
-    
+
+    echo ${rv}
 }
 
 
@@ -115,9 +86,9 @@ pod_up_and_running() {
   pod=$3
 
   rv="1"
-  phase=$(kubectl --context ${kubecontext} get pod  $pod  -n $namespace -o jsonpath='{.status.phase}' 2> /dev/null)
+  phase=$(kubectl --context "${kubecontext}" get pod  $pod  -n "$namespace" -o jsonpath='{.status.phase}' 2> /dev/null)
   if [ "$phase" == "Running" ] || [ "$phase" == "Succeeded" ]; then
-      rv="0"
+    rv="0"
   fi
 
   echo ${rv}  
@@ -132,10 +103,10 @@ deployment_up_and_running() {
     rv="1"
     zero=0
     #TODO troubleshoot --ignore-not-found
-    desiredReplicas=$(kubectl --context ${kubecontext}  get deployment ${deployment} -n ${namespace} -ojsonpath="{.spec.replicas}")
-    readyReplicas=$(kubectl --context ${kubecontext}  get deployment ${deployment} -n ${namespace} -ojsonpath="{.status.readyReplicas}")
+    desiredReplicas=$(kubectl --context ${kubecontext}  get deployment ${deployment} -n ${namespace} -ojsonpath="{.spec.replicas}" --ignore-not-found)
+    readyReplicas=$(kubectl --context ${kubecontext}  get deployment ${deployment} -n ${namespace} -ojsonpath="{.status.readyReplicas}" --ignore-not-found)
     if [ "${desiredReplicas}" == "${readyReplicas}" ] && [ "${desiredReplicas}" != "${zero}" ]; then
-	rv="0"
+	    rv="0"
     fi
 
     echo ${rv}

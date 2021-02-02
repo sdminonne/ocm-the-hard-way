@@ -13,7 +13,7 @@ nuke_cluster() {
 #TODO:  check hub cluster is there
 for c in  $(kubectl --context=kind-hub get managedclusters -o=jsonpath='{.items[?(@.metadata.name!="hub")].metadata.name}')
 do
-    nuke_cluster $c
+    nuke_cluster "$c"
 done
 
 

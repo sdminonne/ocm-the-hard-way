@@ -3,8 +3,7 @@
 source ./hack/common.sh
 
 
-SPOKENAME=${1:-cluster1} #Currently it works only with cluster1 name
-
+SPOKENAME=${1:-cluster1}
 
 tmp_deployment=$(mktemp -d -t ${SPOKENAME}-spoke-XXX)
 
@@ -13,12 +12,10 @@ grep -rl managed-cluster ${tmp_deployment}/klusterlet | xargs sed -i "s/managed-
 
 echo "Going to create managed cluster ${SPOKENAME}"
 
-
 kind create cluster --name ${SPOKENAME}
 
 
 #TODO check whether hub exists
-# kind get clusters  | grep ${SPOKENAME}
 
 kind get kubeconfig --name ${SPOKENAME} --internal > ${ROOTDIR}/${SPOKENAME}-kubeconfig
 
@@ -32,7 +29,7 @@ kubectl --context=kind-${SPOKENAME} create ns open-cluster-management
 wait_until "namespace_active kind-${SPOKENAME} open-cluster-management"
 
 
-sed -e "s,quay.io/open-cluster-management/registration-operator:latest,quay.io/open-cluster-management/registration-operator:latest," -i deploy/klusterlet/olm-catalog/klusterlet/manifests/klusterlet.clusterserviceversion.yaml
+#sed -e "s,quay.io/open-cluster-management/registration-operator:latest,quay.io/open-cluster-management/registration-operator:latest," -i deploy/klusterlet/olm-catalog/klusterlet/manifests/klusterlet.clusterserviceversion.yaml
 
 
 kubectl --context=kind-${SPOKENAME} create ns open-cluster-management-agent
@@ -40,7 +37,7 @@ wait_until "namespace_active kind-${SPOKENAME} open-cluster-management-agent"
 
 
 #TODO: checks file hub-kubeconfig is present
-kubectl --context=kind-${SPOKENAME} create secret generic bootstrap-hub-kubeconfig --from-file=kubeconfig=hub-kubeconfig -n open-cluster-management-agent
+kubectl --context=kind-${SPOKENAME} create secret generic bootstrap-hub-kubeconfig --from-file=kubeconfig="${HUB_KUBECONFIG}" -n open-cluster-management-agent
 #TODO checks secret....
 
 
@@ -49,13 +46,11 @@ operator-sdk run packagemanifests ${tmp_deployment}/klusterlet/olm-catalog/klust
 wait_until "deployment_up_and_running kind-${SPOKENAME} open-cluster-management klusterlet"
 wait_until "deployment_up_and_running kind-${SPOKENAME} open-cluster-management klusterlet-registry-server"
 
-
-#klusterlet-registration-agent will send the csr
 kubectl apply -f ${tmp_deployment}/klusterlet/config/samples/operator_open-cluster-management_klusterlets.cr.yaml
 wait_until "deployment_up_and_running kind-${SPOKENAME} open-cluster-management-agent klusterlet-registration-agent" 5 30
 
 
-#TODO check $SPOKENAME is not accepted 
+#TODO check $SPOKENAME is not accepted using regex 
 accepted=$(kubectl --context=kind-hub get managedclusters  -o=jsonpath="{.items[?(@.metadata.name=='$SPOKENAME')].spec.hubAcceptsClient}")
 
 
@@ -68,12 +63,7 @@ sleep 10
 
 kubectl --context=kind-hub  patch managedcluster  ${SPOKENAME} -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
 
-
-#kubectl --context=kind-${SPOKENAME} create ns open-cluster-management-agent
-#wait_until "namespace_active kind-${SPOKENAME} open-cluster-management-agent"
-
 wait_until "deployment_up_and_running kind-${SPOKENAME} open-cluster-management-agent klusterlet-work-agent"
-
 
 rm  -rf manifest-work.yaml
 
@@ -109,5 +99,4 @@ wait_until "pod_up_and_running kind-${SPOKENAME} default hello" 10 120
 
 kubectl --context=kind-${SPOKENAME} -n default logs hello
 
-
-rm ${tmp_deployment}
+rm -rf ${tmp_deployment}
