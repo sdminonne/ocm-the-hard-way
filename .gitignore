@@ -17,3 +17,7 @@
 manifest-work.yaml
 hub-kubeconfig
 
+
+depot/
+
+*~
