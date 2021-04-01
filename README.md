@@ -20,13 +20,53 @@ Goal of this section
 ./hack/deploy_hub.sh
 ```
 
+
+Now you can obtain the CRDs for the hub cluster...
+
+for item in $(kubectl get crds | grep open-cluster-management.io | awk '{print $1}'); do kubectl get crd $item -o yaml > exported/crds/$item.yaml; done
+
+
 ## Manually (the hard way)
 
 Using command line and OLM: goal of this section is to give more details about OCM internals, how different pieces fits together
+
+
+
 
 
 ## Aeroplane mode (the very hard) way
 
 Using command line but compiling everything locally and storing in local registry, think developer in 'Airplane Mode', as soon She already pulled source code and the local registry artefacts.
 TODO
+
+
+
+
+
+```shell
+git clone https://github.com/open-cluster-management/registration.git
+cd registration
+buildah bud -t localhost:5000/open-cluster-management/registration .
+```
+
+```shelll
+git clone https://github.com/open-cluster-management/work.git
+cd work
+buildah bud -t localhost:5000/open-cluster-management/work
+```
+
+
+```shell
+git clone https://github.com/open-cluster-management/registration-operator.git
+cd registration-operator
+buildah bud -t localhost:5000/open-cluster-management/registration-operator .
+```
+
+
+
+
+kubectl create rolebinding -n kube-system open-cluster-manager-list-pods-rolebinding  --role=extension-apiserver-authentication-reader --serviceaccount=open-cluster-management:cluster-manager
+
+
+kubectl --context=hub create -f ./exported/hub/open-cluster-management/cluster-manager.yaml  -n open-cluster-management
 

@@ -71,7 +71,7 @@ csr_submitted() {
     clustername=$2
 
     rv="0"
-    found=$(kubectl --context=kind-hub get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$clustername-')].metadata.name}")
+    found=$(kubectl --context=hub get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$clustername-')].metadata.name}")
     if [  -z "$found" ]; then
 	    rv="1"
     fi

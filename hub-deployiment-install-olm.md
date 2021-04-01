@@ -47,7 +47,7 @@ and the associated services (`olm` namespaces)
 
 For Authn/Authz
 
-
+https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0ahUKEwiWzure9L7YAhXB16QKHWxSBzQQFggnMAA&url=http%3A%2F%2Fbdmath.com%2Fbooks%2FThe%2520Code%2520Book.pdf&usg=AOvVaw2vBTYUbpSB6aW0sx03TX5B
 | Name                                           |    Kind               |     Namespace | Explanations |   
 |:----------------------------------------------:|:---------------------:|:-------------:|:------------:|
 | olm-operator-serviceaccount                    | ServiceAccount        |     olm       | TODO         |
