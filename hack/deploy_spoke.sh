@@ -35,14 +35,18 @@ kubectl --context=${SPOKENAME} create ns open-cluster-management-agent
 wait_until "namespace_active ${SPOKENAME} open-cluster-management-agent"
 
 
-#TODO: checks whether hub-kubeconfig file is present
-kubectl --context=${SPOKENAME} create secret generic bootstrap-hub-kubeconfig --from-file=kubeconfig="${HUB_KUBECONFIG}" -n open-cluster-management-agent
-#TODO checks secret....
 
 operator-sdk run packagemanifests ${tmp_deployment}/klusterlet/olm-catalog/klusterlet/ --namespace open-cluster-management --version 0.3.0 --install-mode OwnNamespace --timeout=10m
 
 wait_until "deployment_up_and_running ${SPOKENAME} open-cluster-management klusterlet"
 wait_until "deployment_up_and_running ${SPOKENAME} open-cluster-management klusterlet-registry-server"
+
+
+
+#TODO: checks whether hub-kubeconfig file is present
+kubectl --context=${SPOKENAME} create secret generic bootstrap-hub-kubeconfig --from-file=kubeconfig="${HUB_KUBECONFIG}" -n open-cluster-management-agent
+#TODO checks secret....
+
 
 kubectl apply -f ${tmp_deployment}/klusterlet/config/samples/operator_open-cluster-management_klusterlets.cr.yaml
 wait_until "deployment_up_and_running ${SPOKENAME} open-cluster-management-agent klusterlet-registration-agent" 5 30

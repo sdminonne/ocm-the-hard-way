@@ -111,3 +111,105 @@ deployment_up_and_running() {
 
     echo ${rv}
 }
+
+
+
+
+# creates a client CA, args are sudo, dest-dir, ca-id, purpose
+# purpose is dropped in after "key encipherment", you usually want
+# '"client auth"'
+# '"server auth"'
+# '"client auth","server auth"'
+function kube::util::create_signing_certkey {
+    local sudo=$1
+    local dest_dir=$2
+    local id=$3
+    local purpose=$4
+    # Create client ca
+    ${sudo} /bin/bash -e <<EOF
+    rm -f "${dest_dir}/${id}-ca.crt" "${dest_dir}/${id}-ca.key"
+    openssl req -x509 -sha256 -new -nodes -days 365 -newkey rsa:2048 -keyout "${dest_dir}/${id}-ca.key" -out "${dest_dir}/${id}-ca.crt" -subj "/C=xx/ST=x/L=x/O=x/OU=x/CN=ca/emailAddress=x/"
+    echo '{"signing":{"default":{"expiry":"43800h","usages":["signing","key encipherment",${purpose}]}}}' > "${dest_dir}/${id}-ca-config.json"
+EOF
+}
+
+# signs a serving certificate: args are sudo, dest-dir, ca, filename (roughly), subject, hosts...
+function kube::util::create_serving_certkey {
+    local sudo=$1
+    local dest_dir=$2
+    local ca=$3
+    local id=$4
+    local cn=${5:-$4}
+    local hosts=""
+    local SEP=""
+    shift 5
+    while [ -n "${1:-}" ]; do
+        hosts+="${SEP}\"$1\""
+        SEP=","
+        shift 1
+    done
+    ${sudo} /bin/bash -e <<EOF
+    cd ${dest_dir}
+    echo '{"CN":"${cn}","hosts":[${hosts}],"key":{"algo":"rsa","size":2048}}' | cfssl gencert -ca=${ca}.crt -ca-key=${ca}.key -config=${ca}-config.json - | cfssljson -bare serving-${id}
+    mv "serving-${id}-key.pem" "serving-${id}.key"
+    mv "serving-${id}.pem" "serving-${id}.crt"
+    rm -f "serving-${id}.csr"
+EOF
+}
+
+
+
+function generate_certificates() {
+#Refer to documentation (for example https://www.openssl.org/docs/manmaster/man5/x509v3_config.html or https://www.phildev.net/ssl/opensslconf.html )
+
+CN=ocm-the-hard-way
+ROOT_CA_KEY=ca.key
+ROOT_CA_CERT=ca.crt
+
+cat > ca.cfg<<EOF
+[ req ]
+default_bits       = 4096
+default_md         = sha256
+default_keyfile    = domain.com.key
+prompt             = no
+encrypt_key        = no
+distinguished_name = req_distinguished_name
+x509_extensions		= v3_ca
+[ req_distinguished_name ]
+commonName             = ${CN}
+[ v3_ca ]
+basicConstraints = critical, CA:true
+keyUsage = critical, keyCertSign, digitalSignature, keyEncipherment
+[ v3_req ]
+# PKIX complaint
+subjectAltName=email:move
+EOF
+
+echo "Generate ${ROOT_CA_KEY} and ${ROOT_CA_CERT}"
+openssl req -config ca.cfg -newkey rsa:2048 -nodes -keyout ${ROOT_CA_KEY} -x509 -days 36500 -out ${ROOT_CA_CERT}
+
+openssl genrsa -out tls.key 2048
+
+cat > tls.cfg <<EOF
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+CN = kubernetes.default.svc
+[v3_req]
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage=serverAuth
+#subjectAltName = @alt_names
+EOF
+
+SERVER_CRT=tls.crt
+SERVER_KEY=tls.key
+
+openssl req -new -key ${SERVER_KEY} -out tls.csr -config tls.cfg -batch -sha256
+
+openssl x509 -req -days 36500 -in tls.csr -sha256 -CA ${ROOT_CA_CERT} -CAkey ${ROOT_CA_KEY} -CAcreateserial -out ${SERVER_CRT} -extensions v3_req -extfile tls.cfg
+
+rm -rf *.cfg *.csr *.srl
+}
+

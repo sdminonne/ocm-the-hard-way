@@ -6,39 +6,27 @@ Inspired to Kelsey's [Kubernetes the hard way](https://github.com/kelseyhightowe
 
 ### What we're going to do
 
-- Deploying the hub cluter 
-- Deploying the managed cluster(s)
-- Manage an application across multiple clusters
+1. Install the OCM hub on a local cluster (`minikube` or `kind`) 
+2. Install OCM klusterlet to register cluster(s) as a managed cluster(s) on the hub
+3. Manage an application via subscription and deploying on managed cluster(s)
 
+At the moment we don't describe placement rules or security policies.
 
 ## Via scripts (the easy peasy way)
 
-Goal of this section
-```shell
-./hack/deploy_hub.sh
 
+```shell
 ./hack/deploy_hub.sh
 ```
 
-
-Now you can obtain the CRDs for the hub cluster...
-
-for item in $(kubectl get crds | grep open-cluster-management.io | awk '{print $1}'); do kubectl get crd $item -o yaml > exported/crds/$item.yaml; done
-
-
-## Manually (the hard way)
-
-Using command line and OLM: goal of this section is to give more details about OCM internals, how different pieces fits together
-
-
-
+```shell
+./hack/deploy_spoke.sh
+```
 
 
 ## Aeroplane mode (the very hard) way
 
-Using command line but compiling everything locally and storing in local registry, think developer in 'Airplane Mode', as soon She already pulled source code and the local registry artefacts.
-TODO
-
+Using command line but compiling everything locally and storing in local registry, think developer in 'Airplane Mode' ( as soon She/He  already pulled source code and the local registry artefacts).
 
 
 

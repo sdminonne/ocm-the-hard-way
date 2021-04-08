@@ -1,0 +1,7 @@
+apiVersion: v1
+imagePullSecrets:
+- name: open-cluster-management-image-pull-credentials
+kind: ServiceAccount
+metadata:
+  name: klusterlet-registration-sa
+  namespace: open-cluster-management-agent

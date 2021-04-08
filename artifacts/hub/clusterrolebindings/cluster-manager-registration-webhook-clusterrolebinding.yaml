@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-manager-registration-webhook-clusterrolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-manager-registration-webhook
+subjects:
+- kind: ServiceAccount
+  name: cluster-manager-registration-webhook-sa
+  namespace: open-cluster-management-hub

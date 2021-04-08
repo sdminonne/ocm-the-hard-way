@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    app: klusterlet-registration-agent
+  name: klusterlet-registration-agent
+  namespace: open-cluster-management-agent
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1 # should be 3
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: klusterlet-registration-agent
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: klusterlet-registration-agent
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - klusterlet-registration-agent
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+            weight: 70
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - klusterlet-registration-agent
+              topologyKey: kubernetes.io/hostname
+            weight: 30
+      containers:
+      - args:
+        - /registration
+        - agent
+        - --cluster-name=cluster1
+        - --bootstrap-kubeconfig=/spoke/bootstrap/kubeconfig
+        - --spoke-external-server-urls=https://localhost
+        image: localhost:5000/open-cluster-management/registration:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 2
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: registration-controller
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 2
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /spoke/bootstrap
+          name: bootstrap-secret
+          readOnly: true
+        - mountPath: /spoke/hub-kubeconfig
+          name: hub-kubeconfig
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: klusterlet-registration-sa
+      serviceAccountName: klusterlet-registration-sa
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: bootstrap-secret
+        secret:
+          defaultMode: 420
+          secretName: bootstrap-hub-kubeconfig
+      - emptyDir:
+          medium: Memory
+        name: hub-kubeconfig
