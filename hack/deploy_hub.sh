@@ -2,7 +2,7 @@
 
 source ./hack/common.sh
 
-minikube start --driver=kvm2   -p hub
+minikube start --driver=kvm2 -p hub
 
 KUBECONFIG=${HUB_KUBECONFIG} minikube update-context -p hub
 
@@ -24,7 +24,7 @@ operator-sdk olm install --version 0.16.1
  kubectl create ns open-cluster-management
  wait_until "namespace_active hub open-cluster-management"
 
- operator-sdk run packagemanifests depot/deployment/cluster-manager/olm-catalog/cluster-manager/ --namespace open-cluster-management --version 0.3.0 --install-mode OwnNamespace --timeout=10m
+ operator-sdk run packagemanifests deployment/cluster-manager/olm-catalog/cluster-manager/ --namespace open-cluster-management --version 0.3.0 --install-mode OwnNamespace --timeout=10m
  wait_until "deployment_up_and_running hub open-cluster-management cluster-manager"
  wait_until "deployment_up_and_running hub open-cluster-management cluster-manager-registry-server"
 

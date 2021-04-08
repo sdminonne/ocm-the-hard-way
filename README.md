@@ -6,29 +6,28 @@ Inspired to Kelsey's [Kubernetes the hard way](https://github.com/kelseyhightowe
 
 ### What we're going to do
 
-1. Install the OCM hub on a local cluster (`minikube` or `kind`) 
+1. Install the OCM hub on a local cluster (`minikube` for the moment but it should work with `kind` as well) 
 2. Install OCM klusterlet to register cluster(s) as a managed cluster(s) on the hub
 3. Manage an application via subscription and deploying on managed cluster(s)
 
-At the moment we don't describe placement rules or security policies.
+At the moment only registration of existant cluster and application subscription is shown but in the future we should add `placement rules` or `security policies`.
 
-## Via scripts (the easy peasy way)
+All what is going to be described in [Docs/the_very_hard_way.md](./Docs/the_very_hard_way.md) could be run in a fully automatic way through scripts.
 
 
 ```shell
-./hack/deploy_hub.sh
+$  ./hack/deploy_hub.sh
 ```
+will deploy the `hub`, while
 
 ```shell
-./hack/deploy_spoke.sh
+$ ./hack/deploy_managed.sh
 ```
 
+will deploy the managed cluster and it will register the application (a trivial `Hello Kubernetes!`) Pod.
 
-## Aeroplane mode (the very hard) way
-
-Using command line but compiling everything locally and storing in local registry, think developer in 'Airplane Mode' ( as soon She/He  already pulled source code and the local registry artefacts).
-
-
+What is supplied by this repo follows the excellent [www.open-cluster-management.io](https://open-cluster-management.io/) but instead of installing everything trhough `operator-sdk` (the preferred way) it compiles and install everything manually. Currently we deploy only ... in these repositories.
+So 
 
 
 ```shell
@@ -50,11 +49,4 @@ cd registration-operator
 buildah bud -t localhost:5000/open-cluster-management/registration-operator .
 ```
 
-
-
-
-kubectl create rolebinding -n kube-system open-cluster-manager-list-pods-rolebinding  --role=extension-apiserver-authentication-reader --serviceaccount=open-cluster-management:cluster-manager
-
-
-kubectl --context=hub create -f ./exported/hub/open-cluster-management/cluster-manager.yaml  -n open-cluster-management
-
+All the f you find any issue feel free to open an issue but I can only support RHEL 8 and Fedora 33 'cause I don't have a MAC.
