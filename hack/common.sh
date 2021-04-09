@@ -1,15 +1,56 @@
 #!/bin/env bash
 
+
+
+export LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY:-minikube}
+
+
 command -v kubectl >/dev/null 2>&1 || { echo >&2 "can't find kubectl.  Aborting."; exit 1; }
 
-command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
+if [ "${LOCAL_CLUSTER_PROVIDER}" == "minikube" ]; then
+    command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
+fi
 
-command -v curl >/dev/null 2>&1 || { echo >&2 "can't find curl. Aborting."; exit 1; }
+if [ "${LOCAL_CLUSTER_PROVIDER}" == "kind" ]; then
+    command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
+fi
 
-command -v docker >/dev/null 2>&1 || { echo >&2 "can't find docker. Aborting. "; exit 1; }
+create_cluster() {
+    clustername=$1
+    case "${LOCAL_CLUSTER_PROVIDER}" in
+	'minikube')
+	    minikube start --driver=kvm2 -p ${clustername}
+	    ;;
+	'kind')
+	    kind create --name  ${clustername}
+	    ;;
+    esac
+}
 
-docker run hello-world >/dev/null || { echo >&2 "cannot run docker. Aborting. "; exit 1; }
+delete_cluster() {
+    clustername=$1
+    case "${LOCAL_CLUSTER_PROVIDER}" in
+	'minikube')
+	    minikube delete -p  ${clustername}
+	    ;;
+	'kind')
+	    kind delete --name  ${clustername}
+	    ;;
+    esac
+}
 
+get_client_context_from_cluster_name()  {
+    clustername=$1
+     case "${LOCAL_CLUSTER_PROVIDER}" in
+	'minikube')
+	    echo ${clustername}
+	    ;;
+	'kind')
+	    echo kind-${clustername}
+	    ;;
+    esac
+    
+}
 
 echo_red() {
   printf "\033[0;31m%s\033[0m" "$1"
@@ -32,7 +73,7 @@ export HUB_KUBECONFIG=${ROOTDIR}/hub-kubeconfig
 
 wait_until() {
   local script=$1
-  local wait=${2:-.5}
+  local wait=${2:-1}
   local timeout=${3:-10}
   local i
 
@@ -44,12 +85,18 @@ wait_until() {
 	  echo_green "${script_pretty_name}: OK"
       return 0
       fi
-      echo_yellow "${script_pretty_name}: Waiting..."
+      echo_yellow "${script_pretty_name}: Waiting...$wait second(s)"
       sleep $wait
   done
   echo_red "${script_pretty_name}: ERROR"
   return 1
 }
+
+
+local_cluster_provider_is_up() {
+    return 1
+}
+
 
 namespace_active() {
   kubecontext=$1
@@ -71,7 +118,7 @@ csr_submitted() {
     clustername=$2
 
     rv="0"
-    found=$(kubectl --context=hub get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$clustername-')].metadata.name}")
+    found=$(kubectl --context=${kubecontext} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='${clustername}-')].metadata.name}")
     if [  -z "$found" ]; then
 	    rv="1"
     fi

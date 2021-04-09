@@ -9,47 +9,6 @@ HUBNAME=hub
 minikube start -p ${HUBNAME} --driver=kvm2
 ```
 
-You should have something like:
-
-Firsts steps
-
-```shell
-git clone https://github.com/open-cluster-management/registration.git
-cd registration
-buildah bud -t localhost:5000/open-cluster-management/registration .
-```
-
-```shelll
-git clone https://github.com/open-cluster-management/work.git
-cd work
-buildah bud -t localhost:5000/open-cluster-management/work
-```
-
-
-```shell
-git clone https://github.com/open-cluster-management/registration-operator.git
-cd registration-operator
-buildah bud -t localhost:5000/open-cluster-management/registration-operator .
-```
-
-
-```shell
-$ podman images | grep open-cluster-management
-localhost:5000/open-cluster-management/registration-operator  latest       c001a77699f0  19 hours ago   156 MB
-localhost:5000/open-cluster-management/work                   latest       a2c41f98ab52  20 hours ago   211 MB
-localhost:5000/open-cluster-management/registration           latest       60dca2e6ef71  23 hours ago   211 MB
-```
-
-Now you should push the images into the minikube instances through `minikube cache add <image name>`. According to the [doc](https://minikube.sigs.k8s.io/docs/handbook/pushing/#2-push-images-using-cache-command)  only docker images are supported so we need to copy images from rootless images store (podman/buildah) to `docket-daemon` via command like `podman push docker-daemon:<image name>`
-
-```shell
-$ for item in $(podman images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do podman push docker-daemon:$item; done
-```
-and now
-
-```for item in $(podman images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do minikube cache add $item; done 
-```
-
 Here we define the Custom Resources (source is github.com/open-cluster-management/api/)
 
 ```shell
@@ -74,7 +33,7 @@ kubectl --context ${HUBNAME} create namespace open-cluster-management
 ```
 
 ```shell
-kubectl apply -f artifacts/hub/open-cluster-management/cluster-manager-sa.yaml
+kubectl --context ${HUBNAME} apply -f artifacts/hub/open-cluster-management/cluster-manager-sa.yaml
 ```
 
 ```shell
@@ -97,8 +56,6 @@ NAME                                         DESIRED   CURRENT   READY   AGE
 replicaset.apps/cluster-manager-56975c957d   1         1         1       18s
 ```
 
-
-
 ### open-cluster-management-hub namespace
 
 ```shell
@@ -110,9 +67,6 @@ kubectl --context ${HUBNAME} apply -f artifacts/hub/open-cluster-management-hub/
 kubectl --context ${HUBNAME} apply -f artifacts/hub/open-cluster-management-hub/cluster-manager-work-webhook-sa.yaml
 kubectl --context ${HUBNAME} apply -f artifacts/hub/open-cluster-management-hub/cluster-manager-registration-webhook-sa.yaml
 ```
-
-
-
 
 ```shell
 kubectl --context ${HUBNAME} apply -f artifacts/hub/clusterroles/cluster-manager-registration-controller-clusterrole.yaml 
@@ -164,7 +118,6 @@ cat artifacts/hub/open-cluster-management-hub/cluster-manager-work-webhook-list-
 One may want to test the work webhook...
 
 
-
 ```shell
 kubectl create ns tmp-cluster
 cat <<EOF | kubectl --context ${HUBNAME} apply -f -
@@ -197,6 +150,8 @@ kubectl --context ${HUBNAME} apply -f artifacts/hub/clusterroles/cluster-manager
 kubectl --context ${HUBNAME} apply -f artifacts/hub/clusterrolebindings/cluster-manager-registration-webhook-clusterrolebinding.yaml 
 ```
 
+
+```shell
 source ./hack/common.sh
 certsdir=$(mktemp -d)
 
@@ -218,15 +173,15 @@ Now the `hub` or whatever you've named it in ${HUBNAME} is ready to handle manag
 ## Installing the managed cluster(s)
 
 ```shell
-SPOKENAME=cluster1
-minikube start -p ${SPOKENAME} --driver=kvm2
+MANAGEDNAME=cluster1
+minikube start -p ${MANAGEDNAME} --driver=kvm2
 ```
 
 The container images are shared among all the minikube clusters, no need to re-run `minikube cache` commands.
 
 
 ```shell
-kubectl  --context=${SPOKENAME} apply -f  ./artifacts/managed/crds/
+kubectl  --context=${MANAGEDNAME} apply -f  ./artifacts/managed/crds/
 ```
 
 ### Namespace open-cluster-management
@@ -235,57 +190,59 @@ The namespace `open-cluster-management` in managed clusters contains...
 
 
 ```shell
-kubectl --context=${SPOKENAME} create ns open-cluster-management
+kubectl --context=${MANAGEDNAME} create ns open-cluster-management
 ```
 
 ```
-kubectl --context=${SPOKENAME} apply -f artifacts/managed/open-cluster-management/klusterlet-sa.yaml
+kubectl --context=${MANAGEDNAME} apply -f artifacts/managed/open-cluster-management/klusterlet-sa.yaml
 
-kubectl --context=${SPOKENAME} apply -f artifacts/managed/clusterroles/open-cluster-management-klusterlet.yaml 
+kubectl --context=${MANAGEDNAME} apply -f artifacts/managed/clusterroles/open-cluster-management-klusterlet.yaml 
 
-kubectl --context=${SPOKENAME} apply -f artifacts/managed/clusterrolebindings/open-cluster-management-klusterlet.yaml
+kubectl --context=${MANAGEDNAME} apply -f artifacts/managed/clusterrolebindings/open-cluster-management-klusterlet.yaml
 
-kubectl --context=${SPOKENAME} apply -f artifacts/managed/open-cluster-management/klusterlet-deployment.yaml
+kubectl --context=${MANAGEDNAME} apply -f artifacts/managed/open-cluster-management/klusterlet-deployment.yaml
 ```
 
 
 ### Namespace open-cluster-management-agent
 
-Creating the secrets for the klusterlet work and registration.
-
 
 ```shell
-kubectl --context=${SPOKENAME} create ns open-cluster-management-agent
+kubectl --context=${MANAGEDNAME} create ns open-cluster-management-agent
 ```
+
+Creating the secrets for the klusterlet work and registration.
 
 ```shell
 tmpkubeconfig=$(mktemp)
 kubectl --context ${HUBNAME} config view --flatten --minify > ${tmpkubeconfig}
 
-kubectl --context=${SPOKENAME} create secret generic bootstrap-hub-kubeconfig --from-file=kubeconfig="${tmpkubeconfig}" -n open-cluster-management-agent
+kubectl --context=${MANAGEDNAME} create secret generic bootstrap-hub-kubeconfig --from-file=kubeconfig="${tmpkubeconfig}" -n open-cluster-management-agent
 ```
 
+Now we deploy `klusterlet-registration` which automate the cluster registration until the final approval which should be performed manually.
 
-Now we deploy `klusterlet-registration` which automate the cluster registration until the final approval which should be 
-
-Let's start with service account
+Let's start with service account, clusterroles and clusterrolebindings
 
 ```shell
-kubectl --context=${SPOKENAME} apply -f  artifacts/managed/open-cluster-management-agent/klusterlet-registration-sa.yaml
+kubectl --context=${MANAGEDNAME} apply -f  artifacts/managed/open-cluster-management-agent/klusterlet-registration-sa.yaml
 
-kubectl --context=${SPOKENAME} apply -f  artifacts/managed/clusterroles/open-cluster-management-agent-klusterlet-registration.yaml
+kubectl --context=${MANAGEDNAME} apply -f  artifacts/managed/clusterroles/open-cluster-management-agent-klusterlet-registration.yaml
 
-kubectl --context=${SPOKENAME} apply -f artifacts/managed/clusterrolebindings/open-cluster-management-agent-klusterlet-registration.yaml
+kubectl --context=${MANAGEDNAME} apply -f artifacts/managed/clusterrolebindings/open-cluster-management-agent-klusterlet-registration.yaml
 
 
 #TODO change... cluster1 in 
-kubectl --context=${SPOKENAME} apply -f  artifacts/managed/open-cluster-management-agent/klusterlet-registration-agent-deployment.yaml
+kubectl --context=${MANAGEDNAME} apply -f  artifacts/managed/open-cluster-management-agent/klusterlet-registration-agent-deployment.yaml
 ```
+
+
+
 
 Now if you list the  clusters managed by `hub`
 
 ```shell
-kubectl --context ${HUBNAME} get managedclusters
+kubectl --context=${HUBNAME} get managedclusters
 NAME       HUB ACCEPTED   MANAGED CLUSTER URLS   JOINED   AVAILABLE   AGE
 cluster1   false          https://localhost
 ```
@@ -293,7 +250,7 @@ cluster1   false          https://localhost
 
 
 ```shell
-cat <<EOF | kubectl --context=${SPOKENAME} apply -f -
+cat <<EOF | kubectl --context=${MANAGEDNAME} apply -f -
 apiVersion: operator.open-cluster-management.io/v1
 kind: Klusterlet
 metadata:
@@ -301,27 +258,24 @@ metadata:
 spec:
   registrationImagePullSpec: localhost:5000/open-cluster-management/registration:latest
   workImagePullSpec: localhost:5000/open-cluster-management/work:latest
-  clusterName: ${SPOKENAME}
+  clusterName: ${MANAGEDNAME}
   namespace: open-cluster-management-agent
   externalServerURLs:
-  - url: $(kubectl config view -o jsonpath='{.clusters[?(@.name == "'$SPOKENAME'")].cluster.server}')
+  - url: https://localhost
 EOF
 ```
 
 
-
-
 ```shell 
-csrname=$(kubectl --context  ${HUBNAME} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$SPOKENAME-')].metadata.name}")
-kubectl --context=hub  certificate approve  $csrname 
-
-kubectl --context=hub  patch managedcluster  ${SPOKENAME} -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
+csrname=$(kubectl --context=${HUBNAME} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$MANAGEDNAME-')].metadata.name}")
+kubectl --context=${HUBNAME}  certificate approve  $csrname 
+kubectl --context=${HUBNAME}  patch managedcluster  ${MANAGEDNAME} -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
 ```
 
 
 
 ```shell
-kubectl --context ${HUBNAME} get managedclusters
+kubectl --context=${HUBNAME} get managedclusters
 NAME       HUB ACCEPTED   MANAGED CLUSTER URLS   JOINED   AVAILABLE   AGE
 cluster1   true           https://localhost      True     True        31m
 ```
@@ -331,15 +285,15 @@ Now we deploy `klusterlet-work` Pods which handle the workload declared in the `
 
 
 ```shell
-kubectl --context=${SPOKENAME} apply -f  artifacts/managed/open-cluster-management-agent/klusterlet-work-sa.yaml
+kubectl --context=${MANAGEDNAME} apply -f  artifacts/managed/open-cluster-management-agent/klusterlet-work-sa.yaml
 
-kubectl --context=${SPOKENAME} apply -f artifacts/managed/clusterroles/open-cluster-management-agent-klusterlet-work.yaml
+kubectl --context=${MANAGEDNAME} apply -f artifacts/managed/clusterroles/open-cluster-management-agent-klusterlet-work.yaml
 
-kubectl --context=${SPOKENAME} apply -f artifacts/managed/clusterrolebindings/open-cluster-management-agent-klusterlet-work.yaml 
+kubectl --context=${MANAGEDNAME} apply -f artifacts/managed/clusterrolebindings/open-cluster-management-agent-klusterlet-work.yaml 
 
 
 #TODO change... cluster1 deployment
-kubectl  --context=${SPOKENAME} apply -f artifacts/managed/open-cluster-management-agent/klusterlet-work-agent-deployment.yaml
+kubectl  --context=${MANAGEDNAME} apply -f artifacts/managed/open-cluster-management-agent/klusterlet-work-agent-deployment.yaml
 ```
 
 ```shell
@@ -348,7 +302,7 @@ apiVersion: work.open-cluster-management.io/v1
 kind: ManifestWork
 metadata:
   name: mw-01
-  namespace: ${SPOKENAME}
+  namespace: ${MANAGEDNAME}
 spec:
   workload:
     manifests:
@@ -368,6 +322,6 @@ EOF
 
 
 ```shell
-kubectl --context=${SPOKENAME} -n default logs hello
+kubectl --context=${MANAGEDNAME} -n default logs hello
 Hello, Kubernetes!
 ```

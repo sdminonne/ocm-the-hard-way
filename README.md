@@ -27,19 +27,32 @@ $ ./hack/deploy_managed.sh
 will deploy the managed cluster and it will register the application (a trivial `Hello Kubernetes!`) Pod.
 
 What is supplied by this repo follows the excellent [www.open-cluster-management.io](https://open-cluster-management.io/) but instead of installing everything trhough `operator-sdk` (the preferred way) it compiles and install everything manually. Currently we deploy only ... in these repositories.
-So 
+
+
+You should have something like:
+
+```shell
+$ podman images | grep open-cluster-management
+localhost:5000/open-cluster-management/registration-operator  latest       c001a77699f0  19 hours ago   156 MB
+localhost:5000/open-cluster-management/work                   latest       a2c41f98ab52  20 hours ago   211 MB
+localhost:5000/open-cluster-management/registration           latest       60dca2e6ef71  23 hours ago   211 MB
+```
+
+otheriwse you might compile the source code directly:
 
 
 ```shell
 git clone https://github.com/open-cluster-management/registration.git
 cd registration
 buildah bud -t localhost:5000/open-cluster-management/registration .
+cd -
 ```
 
 ```shelll
 git clone https://github.com/open-cluster-management/work.git
 cd work
 buildah bud -t localhost:5000/open-cluster-management/work
+cd -
 ```
 
 
@@ -47,6 +60,20 @@ buildah bud -t localhost:5000/open-cluster-management/work
 git clone https://github.com/open-cluster-management/registration-operator.git
 cd registration-operator
 buildah bud -t localhost:5000/open-cluster-management/registration-operator .
+cd -
 ```
 
-All the f you find any issue feel free to open an issue but I can only support RHEL 8 and Fedora 33 'cause I don't have a MAC.
+Now you should push the images into the minikube instances through `minikube cache add <image name>`. According to the [doc](https://minikube.sigs.k8s.io/docs/handbook/pushing/#2-push-images-using-cache-command)  only docker images are supported so we need to copy images from rootless images store (podman/buildah) to `docket-daemon` via command like `podman push docker-daemon:<image name>`
+
+```shell
+$ for item in $(podman images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do podman push docker-daemon:$item; done
+```
+and now
+
+```shell
+for item in $(podman images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do minikube cache add $item; done 
+```
+
+
+
+All the f you find any issue feel free to open an issue but I can only support RHEL and Fedora 33 'cause I don't have a MAC.

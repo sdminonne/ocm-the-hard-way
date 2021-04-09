@@ -9,6 +9,9 @@ rules:
   - nodes
   - configmaps
   - secrets
+  - pods
+  - replicasets
+  - events
   verbs:
   - get
   - list
