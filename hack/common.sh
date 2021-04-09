@@ -22,7 +22,7 @@ create_cluster() {
 	    minikube start --driver=kvm2 -p ${clustername}
 	    ;;
 	'kind')
-	    kind create --name  ${clustername}
+	    kind create cluster --name  ${clustername}
 	    ;;
     esac
 }
@@ -34,7 +34,7 @@ delete_cluster() {
 	    minikube delete -p  ${clustername}
 	    ;;
 	'kind')
-	    kind delete --name  ${clustername}
+	    kind delete cluster --name  ${clustername}
 	    ;;
     esac
 }
