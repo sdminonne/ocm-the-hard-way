@@ -19,9 +19,9 @@ items:
     name: cluster-manager-registration-webhook
     namespace: open-cluster-management-hub
   spec:
-    clusterIP: 10.103.7.9
+    clusterIP: 10.96.130.9
     clusterIPs:
-    - 10.103.7.9
+    - 10.96.130.9
     ports:
     - port: 443
       protocol: TCP

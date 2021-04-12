@@ -6,7 +6,7 @@ Disclaimer: In order to simplify ... For example multiple `clusterroles` and `cl
 
 ```shell
 HUBNAME=hub
-minikube start -p ${HUBNAME} --driver=kvm2
+#minikube start -p ${HUBNAME} --driver=kvm2  
 ```
 
 Here we define the Custom Resources (source is github.com/open-cluster-management/api/)

@@ -7,10 +7,11 @@ MANAGEDNAME=${1:-cluster1}
    
 create_cluster ${MANAGEDNAME}
 
+deploy_images_to_cluster ${MANAGEDNAME}
+
 MANAGEDCONTEXT=$(get_client_context_from_cluster_name ${MANAGEDNAME})
 HUBCONTEXT=$(get_client_context_from_cluster_name ${HUBNAME})
 
-sleep 10
 kubectl --context=${MANAGEDCONTEXT} apply -f  ./artifacts/managed/crds/
 
 #TODO checks CRDs
@@ -19,21 +20,23 @@ kubectl --context=${MANAGEDCONTEXT} apply -f  ./artifacts/managed/crds/
 
 
 kubectl --context=${MANAGEDCONTEXT} create ns open-cluster-management
-wait_until "namespace_active ${MANAGEDNAME} open-cluster-management"
+wait_until "namespace_active ${MANAGEDCONTEXT} open-cluster-management" 5 60
 
 kubectl --context=${MANAGEDCONTEXT} apply -f artifacts/managed/open-cluster-management/klusterlet-sa.yaml
 kubectl --context=${MANAGEDCONTEXT} apply -f artifacts/managed/clusterroles/open-cluster-management-klusterlet.yaml 
 kubectl --context=${MANAGEDCONTEXT} apply -f artifacts/managed/clusterrolebindings/open-cluster-management-klusterlet.yaml
 kubectl --context=${MANAGEDCONTEXT} apply -f artifacts/managed/open-cluster-management/klusterlet-deployment.yaml
-wait_until "deployment_up_and_running ${MANAGEDNAME} open-cluster-management klusterlet" 10 60
+wait_until "deployment_up_and_running ${MANAGEDCONTEXT} open-cluster-management klusterlet" 10 60
 
 
 
 kubectl --context=${MANAGEDCONTEXT} create ns open-cluster-management-agent
-wait_until "namespace_active ${MANAGEDNAME} open-cluster-management-agent"
+wait_until "namespace_active ${MANAGEDCONTEXT} open-cluster-management-agent" 5 60
 
-tmpkubeconfig=$(mktemp)
-kubectl --context=${HUBCONTEXT} config view --flatten --minify > ${tmpkubeconfig}
+#tmpkubeconfig=$(mktemp)
+#kubectl --context=${HUBCONTEXT} config view --flatten --minify > ${tmpkubeconfig}
+tmpkubeconfig=$(generate_kubeconfig_for_cluster ${HUBNAME})
+echo_green "Generated kubeconfig for secret ${tmpkubeconfig}"
 kubectl --context=${MANAGEDCONTEXT} create secret generic bootstrap-hub-kubeconfig --from-file=kubeconfig="${tmpkubeconfig}" -n open-cluster-management-agent
 
 
@@ -45,11 +48,10 @@ kubectl --context=${MANAGEDCONTEXT} apply -f artifacts/managed/clusterrolebindin
 cat artifacts/managed/open-cluster-management-agent/klusterlet-registration-agent-deployment-template.yaml | \
     sed "s/MANAGEDCLUSTERNAME/${MANAGEDNAME}/g" | \
     kubectl  --context=${MANAGEDCONTEXT} apply -f -
-wait_until "deployment_up_and_running ${MANAGEDNAME} open-cluster-management-agent klusterlet-registration-agent" 5 30
+wait_until "deployment_up_and_running ${MANAGEDCONTEXT} open-cluster-management-agent klusterlet-registration-agent" 10 60
 
 
 kubectl --context=${HUBCONTEXT} get managedclusters
-
 
 
 cat <<EOF | kubectl --context=${MANAGEDCONTEXT} apply -f -
@@ -67,7 +69,7 @@ spec:
 EOF
 
 
-wait_until "csr_submitted ${HUBNAME} ${MANAGEDNAME}" 5 30
+wait_until "csr_submitted ${HUBCONTEXT} ${MANAGEDNAME}" 5 60
 
 csrname=$(kubectl --context=${HUBCONTEXT} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$MANAGEDNAME-')].metadata.name}")
 kubectl --context=${HUBCONTEXT} certificate approve  $csrname
@@ -91,7 +93,7 @@ cat artifacts/managed/open-cluster-management-agent/klusterlet-work-agent-deploy
     sed "s/MANAGEDCLUSTERNAME/${MANAGEDNAME}/g" | \
     kubectl  --context=${MANAGEDCONTEXT} apply -f -
 
-wait_until "deployment_up_and_running ${MANAGEDNAME} open-cluster-management-agent klusterlet-work-agent" 5 30
+wait_until "deployment_up_and_running ${MANAGEDCONTEXT} open-cluster-management-agent klusterlet-work-agent" 5 30
 
 cat <<EOF | kubectl --context=${HUBCONTEXT} apply -f -
 apiVersion: work.open-cluster-management.io/v1
@@ -115,6 +117,6 @@ spec:
         restartPolicy: OnFailure
 EOF
 
-wait_until "pod_up_and_running ${MANAGEDNAME} default hello" 10 120
+wait_until "pod_up_and_running ${MANAGEDCONTEXT} default hello" 10 120
 
 kubectl --context=${MANAGEDCONTEXT} -n default logs hello

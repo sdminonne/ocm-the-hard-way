@@ -1,9 +1,9 @@
 #!/bin/env bash
 
+readonly LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY_CLUSTER_PROVIDER:-minikube}
+readonly LOCAL_CONTAINER_ENGINE=${OCM_THE_HARD_WAY_CONTAINER_ENGINE:-docker}
 
-
-export LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY:-minikube}
-
+#Todo add check parametes
 
 command -v kubectl >/dev/null 2>&1 || { echo >&2 "can't find kubectl.  Aborting."; exit 1; }
 
@@ -16,19 +16,19 @@ if [ "${LOCAL_CLUSTER_PROVIDER}" == "kind" ]; then
 fi
 
 create_cluster() {
-    clustername=$1
+    local clustername=$1
     case "${LOCAL_CLUSTER_PROVIDER}" in
 	'minikube')
 	    minikube start --driver=kvm2 -p ${clustername}
-	    ;;
+      ;;
 	'kind')
-	    kind create cluster --name  ${clustername}
+	    kind create cluster --name  ${clustername} 
 	    ;;
     esac
 }
 
 delete_cluster() {
-    clustername=$1
+    local clustername=$1
     case "${LOCAL_CLUSTER_PROVIDER}" in
 	'minikube')
 	    minikube delete -p  ${clustername}
@@ -40,7 +40,7 @@ delete_cluster() {
 }
 
 get_client_context_from_cluster_name()  {
-    clustername=$1
+    local clustername=$1
      case "${LOCAL_CLUSTER_PROVIDER}" in
 	'minikube')
 	    echo ${clustername}
@@ -49,8 +49,48 @@ get_client_context_from_cluster_name()  {
 	    echo kind-${clustername}
 	    ;;
     esac
-    
 }
+
+
+deploy_image_to_cluster() {
+    local image=$1
+    local clustername=$2
+    echo_green "Deploying $image to $clustername"
+    case "${LOCAL_CLUSTER_PROVIDER}" in
+	'minikube')
+	    minikube cache add $image
+	    ;;
+	'kind')
+	   kind load docker-image $image --name $clustername
+	    ;;
+    esac
+}
+
+generate_kubeconfig_for_cluster() {
+    local clustername=$1
+    local kubeconfig=$(mktemp)
+    case "${LOCAL_CLUSTER_PROVIDER}" in
+	'minikube')
+	  kubectl --context=${clustername} config view --flatten --minify > ${kubeconfig}
+	  ;;
+	'kind')
+	    kind get kubeconfig --name ${clustername} --internal > ${kubeconfig}
+	    ;;
+    esac
+    echo ${kubeconfig}
+}
+
+
+deploy_images_to_cluster() {
+   local clustername=$1
+   local images=$(${LOCAL_CONTAINER_ENGINE} images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}')
+   for image in ${images}
+   do deploy_image_to_cluster ${image} ${clustername}
+   done
+}
+
+
+
 
 echo_red() {
   printf "\033[0;31m%s\033[0m" "$1"
@@ -203,7 +243,6 @@ function kube::util::create_serving_certkey {
     rm -f "serving-${id}.csr"
 EOF
 }
-
 
 
 function generate_certificates() {
