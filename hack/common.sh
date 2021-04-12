@@ -1,11 +1,14 @@
 #!/bin/env bash
 
 readonly LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY_CLUSTER_PROVIDER:-minikube}
-readonly LOCAL_CONTAINER_ENGINE=${OCM_THE_HARD_WAY_CONTAINER_ENGINE:-docker}
 
 #Todo add check parametes
 
 command -v kubectl >/dev/null 2>&1 || { echo >&2 "can't find kubectl.  Aborting."; exit 1; }
+command -v cfssl >/dev/null 2>&1 || { echo >&2 "can't find cfssl. Aborting. You can download from https://pkg.cfssl.org/"; exit 1; }
+command -v cfssljson >/dev/null 2>&1 || { echo >&2 "can't find cfssljson. Aborting. You can download from https://pkg.cfssl.org/"; exit 1; }
+
+
 
 if [ "${LOCAL_CLUSTER_PROVIDER}" == "minikube" ]; then
     command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
@@ -13,7 +16,10 @@ fi
 
 if [ "${LOCAL_CLUSTER_PROVIDER}" == "kind" ]; then
     command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
+    id -Gn | grep -q docker  >/dev/null 2>&1  || { echo >&2 "Not in group docker. Aborting."; exit 1; }
 fi
+
+
 
 create_cluster() {
     local clustername=$1
@@ -104,7 +110,7 @@ echo_green() {
   printf "\033[0;32m%s\033[0m\n" "$1"
 }
 
-id -Gn | grep -q docker  >/dev/null 2>&1  || { echo >&2 "Not in group docker. Aborting."; exit 1; }
+
 
 ROOTDIR=$(git rev-parse --show-toplevel)
 
