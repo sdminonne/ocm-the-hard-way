@@ -1,7 +1,7 @@
 #!/bin/env bash
 
-readonly LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY_CLUSTER_PROVIDER:-minikube}
-
+readonly LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY_CLUSTER_PROVIDER:-kind}
+readonly  LOCAL_CONTAINER_ENGINE=${OCM_THE_HARD_WAY_CONTAINER_ENGINE:-docker}
 #Todo add check parametes
 
 command -v kubectl >/dev/null 2>&1 || { echo >&2 "can't find kubectl.  Aborting."; exit 1; }

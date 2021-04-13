@@ -3,8 +3,8 @@
 source ./hack/common.sh
 
 MANAGEDNAME=${1:-cluster1}
-[[ ! -z "$HUBNAME" ]] && echo Hub name set to "${HUBNAME}" || echo_red "No HUBNAME env var... Create an HUB and set kubectl context to HUBNAME "; 
-   
+[[ ! -z "$HUBNAME" ]] && echo_green "Hub name set to ${HUBNAME}"  || { echo_red "No HUBNAME env var... Create an HUB with ./hack/deploy_hub adn export HUBNAME env var"; echo  ; exit 1; }
+
 create_cluster ${MANAGEDNAME}
 
 deploy_images_to_cluster ${MANAGEDNAME}
