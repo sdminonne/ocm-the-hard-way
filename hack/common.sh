@@ -5,18 +5,19 @@ readonly LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY_CLUSTER_PROVIDER:-minikube}
 #Todo add check parametes
 
 command -v kubectl >/dev/null 2>&1 || { echo >&2 "can't find kubectl.  Aborting."; exit 1; }
-command -v cfssl >/dev/null 2>&1 || { echo >&2 "can't find cfssl. Aborting. You can download from https://pkg.cfssl.org/"; exit 1; }
-command -v cfssljson >/dev/null 2>&1 || { echo >&2 "can't find cfssljson. Aborting. You can download from https://pkg.cfssl.org/"; exit 1; }
+command -v cfssl >/dev/null 2>&1 || { echo >&2 "can't find cfssl. Aborting. You can download from https://pkg.cfssl.org/ (Mac OS: brew install cfssl)"; exit 1; }
+command -v cfssljson >/dev/null 2>&1 || { echo >&2 "can't find cfssljson. Aborting. You can download from https://pkg.cfssl.org/ (Mac OS: brew install cfssljson)"; exit 1; }
 
 
-
+# Cant run minikube w/ kvm2 driver on mac - Exiting due to DRV_UNSUPPORTED_OS: The driver 'kvm2' is not supported on darwin/amd64
 if [ "${LOCAL_CLUSTER_PROVIDER}" == "minikube" ]; then
     command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
 fi
 
 if [ "${LOCAL_CLUSTER_PROVIDER}" == "kind" ]; then
     command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
-    id -Gn | grep -q docker  >/dev/null 2>&1  || { echo >&2 "Not in group docker. Aborting."; exit 1; }
+    # Not working on Mac? Unsure of what it is trying to do
+    # id -Gn | grep -q docker  >/dev/null 2>&1  || { echo >&2 "Not in group docker. Aborting."; exit 1; }
 fi
 
 
@@ -91,7 +92,7 @@ deploy_images_to_cluster() {
    local clustername=$1
    local images=$(${LOCAL_CONTAINER_ENGINE} images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}')
    for image in ${images}
-   do deploy_image_to_cluster ${image} ${clustername}
+    do deploy_image_to_cluster ${image} ${clustername}
    done
 }
 
@@ -164,7 +165,7 @@ csr_submitted() {
     clustername=$2
 
     rv="0"
-    found=$(kubectl --context=${kubecontext} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='${clustername}-')].metadata.name}")
+    found=$(kubectl --context=${kubecontext} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='csr-')].metadata.name}")
     if [  -z "$found" ]; then
 	    rv="1"
     fi
