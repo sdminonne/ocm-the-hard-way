@@ -18,29 +18,31 @@ All what is going to be described in [Docs/the_very_hard_way.md](./Docs/the_very
 
 
 ```shell
+# Linux / Deploy with minikube (Minikube 'kvm2' is not supported on darwin/amd64)
 $  ./hack/deploy_hub.sh
 ```
 
 will deploy the `hub` using `minikube`.
 
-To deploy the `hub` using `kind` you should run
+To deploy the `hub` using `kind` you should run. 
 
 ```shell
-#deploy with kind
-OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind ./hack/deploy_hub.sh
+# MAC OS / Deploy with Kind
+OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind HUBNAME=hubcluster ./hack/deploy_hub.sh
 ```
 
 Similarly
 
 ```shell
-# Deploy with minikube
+# Linux / Deploy with minikube (Minikube 'kvm2' is not supported on darwin/amd64)
 $ ./hack/deploy_managed.sh
 ```
 
 or 
+
 ```shell
-#deploy with kind
-OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind ./hack/deploy_managed.sh
+# MAC OS / Deploy with Kind
+OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind HUBNAME=hubcluster ./hack/deploy_managed.sh
 ```
 
 
@@ -65,14 +67,24 @@ otheriwse you might compile the source code directly:
 ```shell
 git clone https://github.com/open-cluster-management/registration.git
 cd registration
+
+# Linux
 buildah bud -t localhost:5000/open-cluster-management/registration .
+# Mac OS
+docker build -t localhost:5000/open-cluster-management/registration .
+
 cd -
 ```
 
 ```shelll
 git clone https://github.com/open-cluster-management/work.git
 cd work
-buildah bud -t localhost:5000/open-cluster-management/work
+
+# Linux
+buildah bud -t localhost:5000/open-cluster-management/work .
+# Mac OS
+docker build -t localhost:5000/open-cluster-management/work .
+
 cd -
 ```
 
@@ -80,14 +92,22 @@ cd -
 ```shell
 git clone https://github.com/open-cluster-management/registration-operator.git
 cd registration-operator
+
+# Linux
 buildah bud -t localhost:5000/open-cluster-management/registration-operator .
+# Mac OS
+docker build -t localhost:5000/open-cluster-management/registration-operator .
+
 cd -
 ```
 
 Now you should push the images into the minikube instances through `minikube cache add <image name>`. According to the [doc](https://minikube.sigs.k8s.io/docs/handbook/pushing/#2-push-images-using-cache-command)  only docker images are supported so we need to copy images from rootless images store (podman/buildah) to `docket-daemon` via command like `podman push docker-daemon:<image name>`
 
 ```shell
+# Linux
 $ for item in $(podman images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do podman push docker-daemon:$item; done
+# Mac OS
+$ for item in $(docker images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do kind load docker-image $item --name hub; done
 ```
 and now
 

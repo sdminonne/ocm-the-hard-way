@@ -20,8 +20,6 @@ items:
     namespace: open-cluster-management-hub
   spec:
     clusterIP: 10.96.140.57
-    clusterIPs:
-    - 10.96.140.57
     ports:
     - port: 443
       protocol: TCP

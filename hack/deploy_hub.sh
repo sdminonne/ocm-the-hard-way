@@ -1,8 +1,17 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 source ./hack/common.sh
 
-export HUBNAME=${1:-hub}
+export HUBNAME=${HUBNAME:-hub}
+
+if [ -z ${LOCAL_CONTAINER_ENGINE+x} ];then 
+    echo "LOCAL_CONTAINER_ENGINE is unset"; 
+    echo "Set 'LOCAL_CONTAINER_ENGINE'. Must be 'docker' on Mac OS."
+    exit 1
+else 
+    echo "LOCAL_CONTAINER_ENGINE is set to '$LOCAL_CONTAINER_ENGINE'";
+fi
+
 
 create_cluster ${HUBNAME}
 
@@ -58,7 +67,6 @@ cat artifacts/hub/open-cluster-management-hub/cluster-manager-work-webhook-list-
     sed "s/SERVICE_SERVING_CERT_CA/$(base64 ${certsdir}/serving-ca.crt | tr -d '\n')/g" | \
     sed "s/KUBE_CA/${KUBE_CA}/g" | \
     kubectl  --context=${HUBCONTEXT}  apply -f -
-
 wait_until "deployment_up_and_running ${HUBCONTEXT} open-cluster-management-hub cluster-manager-work-webhook" 5 30
 
 kubectl --context=${HUBCONTEXT} apply -f artifacts/hub/clusterroles/cluster-manager-registration-webhook-clusterrole.yaml 
