@@ -62,10 +62,10 @@ kube::util::create_serving_certkey "" "${certsdir}" "serving-ca" cluster-manager
 
 KUBE_CA=$(kubectl --context=${HUBCONTEXT} config view --minify=true --flatten -o json | jq '.clusters[0].cluster."certificate-authority-data"' -r)
 cat artifacts/hub/open-cluster-management-hub/cluster-manager-work-webhook-list-template.yaml | \
-    gsed "s/TLS_SERVING_CERT/$(base64 ${certsdir}/serving-cluster-manager-work-webhook.open-cluster-management-hub.svc.crt | tr -d '\n')/g" | \
-    gsed "s/TLS_SERVING_KEY/$(base64 ${certsdir}/serving-cluster-manager-work-webhook.open-cluster-management-hub.svc.key | tr -d '\n')/g" | \
-    gsed "s/SERVICE_SERVING_CERT_CA/$(base64 ${certsdir}/serving-ca.crt | tr -d '\n')/g" | \
-    gsed "s/KUBE_CA/${KUBE_CA}/g" | \
+    sed "s/TLS_SERVING_CERT/$(base64 ${certsdir}/serving-cluster-manager-work-webhook.open-cluster-management-hub.svc.crt | tr -d '\n')/g" | \
+    sed "s/TLS_SERVING_KEY/$(base64 ${certsdir}/serving-cluster-manager-work-webhook.open-cluster-management-hub.svc.key | tr -d '\n')/g" | \
+    sed "s/SERVICE_SERVING_CERT_CA/$(base64 ${certsdir}/serving-ca.crt | tr -d '\n')/g" | \
+    sed "s/KUBE_CA/${KUBE_CA}/g" | \
     kubectl  --context=${HUBCONTEXT}  apply -f -
 wait_until "deployment_up_and_running ${HUBCONTEXT} open-cluster-management-hub cluster-manager-work-webhook" 5 30
 

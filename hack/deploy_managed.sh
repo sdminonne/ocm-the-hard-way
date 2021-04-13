@@ -71,7 +71,7 @@ EOF
 
 wait_until "csr_submitted ${HUBCONTEXT} ${MANAGEDNAME}" 5 60
 
-csrname=$(kubectl --context=${HUBCONTEXT} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='$MANAGEDNAME-')].metadata.name}")
+csrname=$(kubectl --context=${HUBCONTEXT} get csr -o=jsonpath="{.items[?(@.metadata.generateName=='${MANAGEDNAME}-')].metadata.name}")
 kubectl --context=${HUBCONTEXT} certificate approve  $csrname
 
 # TOO replace with wait_until
