@@ -28,7 +28,7 @@ To deploy the `hub` using `kind` you should run.
 
 ```shell
 # MAC OS / Deploy with Kind
-OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind HUBNAME=hubcluster ./hack/deploy_hub.sh
+OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind ./hack/deploy_hub.sh
 ```
 
 Similarly
@@ -42,7 +42,7 @@ or
 
 ```shell
 # MAC OS / Deploy with Kind
-OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind HUBNAME=hubcluster ./hack/deploy_managed.sh
+OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind ./hack/deploy_managed.sh
 ```
 
 
