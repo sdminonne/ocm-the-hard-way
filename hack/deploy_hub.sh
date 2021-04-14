@@ -2,7 +2,49 @@
 
 source ./hack/common.sh
 
-export HUBNAME=${HUBNAME:-hub}
+################################################################################
+# Help: displays usage
+################################################################################
+Help()
+{
+ # Display Help
+ echo "deploy_hub deploys OCM hub "
+ echo
+ echo "Syntax: deploy_hub [ -e|h|n|p ]" 
+ echo "options:"
+ echo "-e <docker> Specify the container engine. Default : ${DEFAULT_CONTAINER_ENGINE}"
+ echo "-h Print this help."
+ echo "-n <hubname> Specify the name of the hub, Default: ${DEFAULT_HUBNAME}"
+ echo "-p <kind|minikube> Specify the cluster provider: kind or minikube. Default ${DEFAULT_CLUSTER_PROVIDER}"
+ echo
+}
+
+LOCAL_CONTAINER_ENGINE=${DEFAULT_CONTAINER_ENGINE}
+LOCAL_CLUSTER_PROVIDER=${DEFAULT_CLUSTER_PROVIDER}
+HUBNAME=${DEFAULT_HUBNAME}
+
+###############################################################
+# Main program                                                #
+###############################################################
+while getopts "e:hn:p:" arg; do
+ case $arg in
+     h) # display Usage
+	 Help
+	 exit
+	 ;;
+     n) HUBNAME=${OPTARG}
+        ;;
+     e) LOCAL_CONTAINER_ENGINE=${OPTARG}
+	;;
+     p) LOCAL_CLUSTER_PROVIDER=${OPTARG}
+	;;
+     *)
+         Help
+	 exit
+         ;;
+ esac
+done
+shift $((OPTIND-1))
 
 if [ -z ${LOCAL_CONTAINER_ENGINE+x} ];then 
     echo "LOCAL_CONTAINER_ENGINE is unset"; 
@@ -12,6 +54,9 @@ else
     echo "LOCAL_CONTAINER_ENGINE is set to '$LOCAL_CONTAINER_ENGINE'";
 fi
 
+echo_green "Hub name         -> ${HUBNAME}"
+echo_green "Container engine -> ${LOCAL_CONTAINER_ENGINE}"
+echo_green "Cluster provider -> ${LOCAL_CLUSTER_PROVIDER=}"
 
 create_cluster ${HUBNAME}
 

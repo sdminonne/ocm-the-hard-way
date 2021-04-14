@@ -1,25 +1,32 @@
 #!/bin/env bash
 
-readonly LOCAL_CLUSTER_PROVIDER=${OCM_THE_HARD_WAY_CLUSTER_PROVIDER:-minikube}
-
-#Todo add check parametes
-
+################################################################################
+# Check static prerequisites 
+################################################################################
 command -v kubectl >/dev/null 2>&1 || { echo >&2 "can't find kubectl.  Aborting."; exit 1; }
 command -v cfssl >/dev/null 2>&1 || { echo >&2 "can't find cfssl. Aborting. You can download from https://pkg.cfssl.org/ (Mac OS: brew install cfssl)"; exit 1; }
 command -v cfssljson >/dev/null 2>&1 || { echo >&2 "can't find cfssljson. Aborting. You can download from https://pkg.cfssl.org/ (Mac OS: brew install cfssljson)"; exit 1; }
 
+################################################################################
+# Default setting
+################################################################################
+readonly DEFAULT_CONTAINER_ENGINE=docker
+readonly DEFAULT_CLUSTER_PROVIDER=kind
+readonly DEFAULT_HUBNAME=hub
+readonly DEFAULT_MANAGEDNAME=cluster1
 
-# Cant run minikube w/ kvm2 driver on mac - Exiting due to DRV_UNSUPPORTED_OS: The driver 'kvm2' is not supported on darwin/amd64
-if [ "${LOCAL_CLUSTER_PROVIDER}" == "minikube" ]; then
-    command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
+################################################################################
+# Checks prerequisites after option selection
+################################################################################
+check_prerequisites() {
+   if [ "${LOCAL_CLUSTER_PROVIDER}" == "minikube" ]; then
+    command -v minikube >/dev/null 2>&1 || { echo >&2 "can't find minikube. Aborting."; exit 1; }
 fi
 
 if [ "${LOCAL_CLUSTER_PROVIDER}" == "kind" ]; then
     command -v kind >/dev/null 2>&1 || { echo >&2 "can't find kind. Aborting."; exit 1; }
-    # Not working on Mac? Unsure of what it is trying to do
-    # id -Gn | grep -q docker  >/dev/null 2>&1  || { echo >&2 "Not in group docker. Aborting."; exit 1; }
 fi
-
+}
 
 
 create_cluster() {
@@ -250,59 +257,3 @@ function kube::util::create_serving_certkey {
     rm -f "serving-${id}.csr"
 EOF
 }
-
-
-function generate_certificates() {
-#Refer to documentation (for example https://www.openssl.org/docs/manmaster/man5/x509v3_config.html or https://www.phildev.net/ssl/opensslconf.html )
-
-CN=ocm-the-hard-way
-ROOT_CA_KEY=ca.key
-ROOT_CA_CERT=ca.crt
-
-cat > ca.cfg<<EOF
-[ req ]
-default_bits       = 4096
-default_md         = sha256
-default_keyfile    = domain.com.key
-prompt             = no
-encrypt_key        = no
-distinguished_name = req_distinguished_name
-x509_extensions		= v3_ca
-[ req_distinguished_name ]
-commonName             = ${CN}
-[ v3_ca ]
-basicConstraints = critical, CA:true
-keyUsage = critical, keyCertSign, digitalSignature, keyEncipherment
-[ v3_req ]
-# PKIX complaint
-subjectAltName=email:move
-EOF
-
-echo "Generate ${ROOT_CA_KEY} and ${ROOT_CA_CERT}"
-openssl req -config ca.cfg -newkey rsa:2048 -nodes -keyout ${ROOT_CA_KEY} -x509 -days 36500 -out ${ROOT_CA_CERT}
-
-openssl genrsa -out tls.key 2048
-
-cat > tls.cfg <<EOF
-[req]
-distinguished_name = req_distinguished_name
-x509_extensions = v3_req
-prompt = no
-[req_distinguished_name]
-CN = kubernetes.default.svc
-[v3_req]
-keyUsage = critical, digitalSignature, keyEncipherment
-extendedKeyUsage=serverAuth
-#subjectAltName = @alt_names
-EOF
-
-SERVER_CRT=tls.crt
-SERVER_KEY=tls.key
-
-openssl req -new -key ${SERVER_KEY} -out tls.csr -config tls.cfg -batch -sha256
-
-openssl x509 -req -days 36500 -in tls.csr -sha256 -CA ${ROOT_CA_CERT} -CAkey ${ROOT_CA_KEY} -CAcreateserial -out ${SERVER_CRT} -extensions v3_req -extfile tls.cfg
-
-rm -rf *.cfg *.csr *.srl
-}
-
