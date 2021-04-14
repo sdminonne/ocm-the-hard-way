@@ -175,4 +175,3 @@ items:
           secret:
             defaultMode: 420
             secretName: work-webhook-serving-cert
-  

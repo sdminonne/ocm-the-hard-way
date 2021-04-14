@@ -2,8 +2,62 @@
 
 source ./hack/common.sh
 
-MANAGEDNAME=${1:-cluster1}
-[[ ! -z "$HUBNAME" ]] && echo_green "Hub name set to ${HUBNAME}"  || { echo_red "No HUBNAME env var... Create an HUB with ./hack/deploy_hub adn export HUBNAME env var"; echo  ; exit 1; }
+################################################################################
+# Help: displays usage
+################################################################################
+Help()
+{
+ # Display Help
+ echo "deploy_hub deploys OCM managed cluster "
+ echo
+ echo "Syntax: deploy_hub [ -b|e|h|n|p ]" 
+ echo "options:"
+ echo "-b <hub name> Specify the name of the cluster, Default: ${DEFAULT_HUBNAME}"
+ echo "-e <docker> Specify the container engine. Default : ${DEFAULT_CONTAINER_ENGINE}"
+ echo "-h Print this help."
+ echo "-n <cluster name> Specify the name of the cluster, Default: ${DEFAULT_MANAGEDNAME}"
+ echo "-p <kind|minikube> Specify the cluster provider: kind or minikube. Default ${DEFAULT_CLUSTER_PROVIDER}"
+ echo
+ echo "Exmples:"
+ echo "./hack/deploy_managed.sh -b hub -n cluster-foo -p minikube"
+}
+
+
+LOCAL_CONTAINER_ENGINE=${DEFAULT_CONTAINER_ENGINE}
+LOCAL_CLUSTER_PROVIDER=${DEFAULT_CLUSTER_PROVIDER}
+HUBNAME=${DEFAULT_HUBNAME}
+MANAGEDNAME=${DEFAULT_MANAGEDNAME}
+
+###############################################################
+# Main program                                                #
+###############################################################
+# Get the options
+while getopts "b:e:hn:p:" arg; do
+ case $arg in
+     b) HUBNAME=${OPTARG}
+	;;
+     e) LOCAL_CONTAINER_ENGINE=${OPTARG}
+	;;
+     h)	 Help
+	 exit
+	 ;;
+     n) MANAGEDNAME=${OPTARG}
+	;;
+     p) LOCAL_CLUSTER_PROVIDER=${OPTARG}
+	;;
+     *)  Help
+	 exit
+         ;;
+ esac
+done
+shift $((OPTIND-1))
+
+echo_green "Managed cluster name -> ${MANAGEDNAME}"
+echo_green "Hub cluster name     -> ${HUBNAME}"
+echo_green "Container engine     -> ${LOCAL_CONTAINER_ENGINE}"
+echo_green "Cluster provider     -> ${LOCAL_CLUSTER_PROVIDER=}"
+
+#TODO: we should check hubname is a real working cluster
 
 create_cluster ${MANAGEDNAME}
 
