@@ -8,7 +8,7 @@ source ./hack/common.sh
 Help()
 {
  # Display Help
- echo "deploy_hub deploys OCM managed cluster "
+ echo "$0 deploys OCM managed cluster "
  echo
  echo "Syntax: deploy_hub [ -b|e|h|n|p ]" 
  echo "options:"

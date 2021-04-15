@@ -29,6 +29,25 @@ fi
 }
 
 
+validate_config() {
+    unameOut="$(uname -s)"
+    case "${unameOut}" in
+	Linux*) # We should support all the conbinations
+	;;
+	Darwin*)
+	    if [[ "${LOCAL_CONTAINER_ENGINE}" != "docker" ]] || [[ "${LOCAL_CLUSTER_PROVIDER}" != "kind" ]];
+	    then
+		echo_red "On Mac only kind/docker is supported. Try with '-p kind -e docker'"
+		exit 1		
+	    fi
+	    ;;
+	*)
+	    echo_red "Unsupported platform ${unameOut}"
+	    exit 1
+	    ;;
+    esac
+}
+
 create_cluster() {
     local clustername=$1
     case "${LOCAL_CLUSTER_PROVIDER}" in
@@ -95,6 +114,18 @@ generate_kubeconfig_for_cluster() {
 }
 
 
+get_all_clusters() {
+    case "${LOCAL_CLUSTER_PROVIDER}" in
+	'minikube')
+	    echo $(minikube profile list -o json | jq -r .valid[].Name)
+	    ;;
+	'kind')
+	    echo $(kind get clusters)
+	    ;;
+    esac
+}
+
+
 deploy_images_to_cluster() {
    local clustername=$1
    local images=$(${LOCAL_CONTAINER_ENGINE} images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}')
@@ -102,9 +133,6 @@ deploy_images_to_cluster() {
     do deploy_image_to_cluster ${image} ${clustername}
    done
 }
-
-
-
 
 echo_red() {
   printf "\033[0;31m%s\033[0m" "$1"

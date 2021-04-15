@@ -8,7 +8,7 @@ source ./hack/common.sh
 Help()
 {
  # Display Help
- echo "deploy_hub deploys OCM hub "
+ echo "$0 deploys OCM hub "
  echo
  echo "Syntax: deploy_hub [ -e|h|n|p ]" 
  echo "options:"
@@ -46,13 +46,8 @@ while getopts "e:hn:p:" arg; do
 done
 shift $((OPTIND-1))
 
-if [ -z ${LOCAL_CONTAINER_ENGINE+x} ];then 
-    echo "LOCAL_CONTAINER_ENGINE is unset"; 
-    echo "Set 'LOCAL_CONTAINER_ENGINE'. Must be 'docker' on Mac OS."
-    exit 1
-else 
-    echo "LOCAL_CONTAINER_ENGINE is set to '$LOCAL_CONTAINER_ENGINE'";
-fi
+
+validate_config
 
 echo_green "Hub name         -> ${HUBNAME}"
 echo_green "Container engine -> ${LOCAL_CONTAINER_ENGINE}"

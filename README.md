@@ -1,58 +1,14 @@
+# Open Cluster Management the hard way
+
 Inspired to Kelsey's [Kubernetes the hard way](https://github.com/kelseyhightower/kubernetes-the-hard-way), this tutorial should help you to set up `Open Cluster Manager` (`OCM`). At the same time, going through this repository, one should learn `Open Cluster Manager`  internals and how all the components fit together.
 
-The environment has been put together to work on a laptop and it's based on `minikube` (the default) or on `kind`. The container images have to be present on the laptop and can be compiled locally or tagged after pull from somewhere else.
+What is supplied by this repo follows the excellent [www.open-cluster-management.io](https://open-cluster-management.io/) but instead of installing everything trhough `operator-sdk` (the preferred way) it compiles and install (and configure) everything manually.
 
-### Prerequirements
+The environment has been put together to work on a laptop and it's based on `kind` (the default) or on `minikube`. The container images have to be present on the laptop and can be compiled locally or tagged after pull from somewhere else.
 
-Most of the needed tools should be available on a laptop, the scripts perform prerequirement checks and everything relies only on pretty standard tools except maybe cloudflare ssl tools (`cfssl` and `cfssljson`) which can be downloaded from  https://pkg.cfssl.org. Obviously you should have `kubectl`.
+As already mentioned the `hub` and the `managed` functionalities will be deployed through code in `https://github.com/open-cluster-management/registration.git` `https://github.com/open-cluster-management/registration-operator.git` and `https://github.com/open-cluster-management/work.git`. The scripts are based on a sort of naming convention which is `localhost:5000/open-cluster-management/<IMAGE NAME>`. The `localhost:5000` prefix could be modified but it's explicitely used in the scripts; it has been added originally to use an `in-cluster` containers registry deployed as a `DaemonSet`.
 
-
-### What we're going to do
-
-1. Install the OCM hub on a local cluster (`minikube` for the moment but it should work with `kind` as well) 
-2. Install OCM klusterlet to register cluster(s) as a managed cluster(s) on the hub
-3. Manage an application via subscription and deploy the application on managed cluster(s)
-
-At the moment only registration of existant cluster and application subscription is shown. In the future we should add `placement rules` or `security policies`.
-All what is going to be described in [Docs/the_very_hard_way.md](./Docs/the_very_hard_way.md) can be run in a fully automatic way through scripts.
-
-
-```shell
-# Linux / Deploy with minikube (Minikube 'kvm2' is not supported on darwin/amd64)
-$  ./hack/deploy_hub.sh
-```
-
-will deploy the `hub` using `minikube`.
-
-To deploy the `hub` using `kind` you should run. 
-
-```shell
-# MAC OS / Deploy with Kind
-OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind ./hack/deploy_hub.sh
-```
-
-Similarly
-
-```shell
-# Linux / Deploy with minikube (Minikube 'kvm2' is not supported on darwin/amd64)
-$ ./hack/deploy_managed.sh
-```
-
-or 
-
-```shell
-# MAC OS / Deploy with Kind
-OCM_THE_HARD_WAY_CLUSTER_PROVIDER=kind ./hack/deploy_managed.sh
-```
-
-
-will deploy the managed cluster and it will register the application (a trivial `Hello Kubernetes!`) Pod.
-
-
-What is supplied by this repo follows the excellent [www.open-cluster-management.io](https://open-cluster-management.io/) but instead of installing everything trhough `operator-sdk` (the preferred way) it compiles and install everything manually.
-
-The `hub` and the `managed` functionalities will be deployed through code in `https://github.com/open-cluster-management/registration.git` `https://github.com/open-cluster-management/registration-operator.git` and `https://github.com/open-cluster-management/work.git`. The scripts work based on a sort of naming convention which is `localhost:5000/open-cluster-management/<IMAGE NAME>`. The `localhost:5000` prefix could be changed, it has been added originally to use an `in-cluster` containers registry deployed as a `DaemonSet`.
-
+So listing the images on your laptop with `podman` or with `docker`, as soon you've something like this (with `podman`)
 
 ```shell
 $ podman images | grep open-cluster-management
@@ -61,8 +17,7 @@ localhost:5000/open-cluster-management/work                   latest       a2c41
 localhost:5000/open-cluster-management/registration           latest       60dca2e6ef71  23 hours ago   211 MB
 ```
 
-otheriwse you might compile the source code directly:
-
+you can start the scripts otheriwse you might compile the source code directly:
 
 ```shell
 git clone https://github.com/open-cluster-management/registration.git
@@ -82,12 +37,12 @@ cd work
 
 # Linux
 buildah bud -t localhost:5000/open-cluster-management/work .
+
 # Mac OS
 docker build -t localhost:5000/open-cluster-management/work .
 
 cd -
 ```
-
 
 ```shell
 git clone https://github.com/open-cluster-management/registration-operator.git
@@ -95,26 +50,87 @@ cd registration-operator
 
 # Linux
 buildah bud -t localhost:5000/open-cluster-management/registration-operator .
+
 # Mac OS
 docker build -t localhost:5000/open-cluster-management/registration-operator .
 
 cd -
 ```
 
-Now you should push the images into the minikube instances through `minikube cache add <image name>`. According to the [doc](https://minikube.sigs.k8s.io/docs/handbook/pushing/#2-push-images-using-cache-command)  only docker images are supported so we need to copy images from rootless images store (podman/buildah) to `docket-daemon` via command like `podman push docker-daemon:<image name>`
+As soon you've the images tagged locally with `localhost:5000/open-cluster-management/<IMAGE>:latest` the scripts automatically provision the images on the cluster (for both providers).
+
+
+### Prerequirements
+
+Most of the needed tools should be available on a laptop, the scripts perform prerequirement checks and everything relies only on pretty standard tools except maybe cloudflare ssl tools (`cfssl` and `cfssljson`) which can be downloaded from  https://pkg.cfssl.org. Obviously you should have `kubectl`.
+
+
+### What we're going to do
+
+1. Install the OCM hub on a local cluster (`kind` for the moment but it should work with `kind` as well) 
+2. Install OCM klusterlet to register cluster(s) as a managed cluster(s) on the hub
+3. Manage an application via subscription and deploy the application on managed cluster(s)
+
+At the moment only registration of existant cluster and application subscription is shown. In the future we should add `placement rules` or `security policies`.
+All what is going to be described in [Docs/the_very_hard_way.md](./Docs/the_very_hard_way.md) can be run in a fully automatic way through scripts.
+
 
 ```shell
-# Linux
-$ for item in $(podman images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do podman push docker-daemon:$item; done
-# Mac OS
-$ for item in $(docker images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do kind load docker-image $item --name hub; done
+$  ./hack/deploy_hub.sh
+Hub name         -> hub
+Container engine -> docker
+Cluster provider -> kind
+Creating cluster "hub" ...
+ ✓ Ensuring node image (kindest/node:v1.20.2) 🖼
+ ✓ Preparing nodes 📦  
+ ✓ Writing configuration 📜 
+ ✓ Starting control-plane 🕹️ 
+ ✓ Installing CNI 🔌 
+ ✓ Installing StorageClass 💾 
+ Set kubectl context to "kind-hub"
+... 
+deployment up and running kind-hub open-cluster-management-hub cluster-manager-registration-webhook: OK
+Hub deployed
 ```
-and now
+
+will deploy the `hub` using `kind` the default cluster provider, another cluster provider is supported on Linux only: `./hack/deploy_hub -p minikube`.
+
+As soon you've the `hub` you can deploy one managed cluster
 
 ```shell
-for item in $(podman images | grep localhost:5000/open-cluster-management | awk '{printf "%s:%s\n", $1, $2}'); do minikube cache add $item; done 
+$ ./hack/deploy_managed.sh
+Managed cluster name -> cluster1
+Hub cluster name     -> hub
+Container engine     -> docker
+Cluster provider     -> kind
+Creating cluster "cluster1" ...
+ ✓ Ensuring node image (kindest/node:v1.20.2) 🖼
+ ✓ Preparing nodes 📦  
+ ✓ Writing configuration 📜 
+ ✓ Starting control-plane 🕹️ 
+ ✓ Installing CNI 🔌 
+ ✓ Installing StorageClass 💾 
+Set kubectl context to "kind-cluster1"
+...
+pod up and running kind-cluster1 default hello: OK
+Hello, Kubernetes!
 ```
 
+which deploy the managed cluster and it will register the application (a trivial `Hello Kubernetes!`) Pod.
+
+The `./hack/deploy_managed.sh` script optionally takes as input the name of the `hub` (which must be present). Hence one may have more than one hub. Obviously one managed can be registered only to a single `hub`.
+ A limitation of this small infrastructure is that all clusters must run under the same cloud provider (`minikube` or `kind`), the limitation comes directly from the scripts (kubernetes context for `minikube` and `kind` are different) and it could be removed in the future.
 
 
-All the f you find any issue feel free to open an issue but I can only support RHEL and Fedora 33 (sorry Fedora34 folks, not yet updated) 'cause I don't have a MAC.
+As soon you've deployed your micro fleet of clusters you can remove everything via the commands
+
+```shell
+./hack/tear_down.sh
+Managed cluster name -> 
+Hub cluster name     -> hub
+Container engine     -> 
+Cluster provider     -> kind
+Removing all clusters for kind
+Deleting cluster "cluster1" ...
+Deleting cluster "hub" ...
+```
