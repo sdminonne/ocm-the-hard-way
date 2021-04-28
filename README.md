@@ -2,7 +2,7 @@
 
 Inspired to Kelsey's [Kubernetes the hard way](https://github.com/kelseyhightower/kubernetes-the-hard-way), this tutorial should help you to set up `Open Cluster Manager` (`OCM`). At the same time, going through this repository, one should learn `Open Cluster Manager`  internals and how all the components fit together.
 
-What is supplied by this repo follows the excellent [www.open-cluster-management.io](https://open-cluster-management.io/) but instead of installing everything trhough `operator-sdk` (the preferred way) it compiles and install (and configure) everything manually.
+What is supplied by this repo follows the excellent [www.open-cluster-management.io](https://open-cluster-management.io/) but instead of installing everything through `operator-sdk` (the preferred way) it compiles and installs (and configures) everything manually.
 
 The environment has been put together to work on a laptop and it's based on `kind` (the default) or on `minikube`. The container images have to be present on the laptop and can be compiled locally or tagged after pull from somewhere else.
 
@@ -118,7 +118,7 @@ Hello, Kubernetes!
 
 which deploy the managed cluster and it will register the application (a trivial `Hello Kubernetes!`) Pod.
 
-The `./hack/deploy_managed.sh` script optionally takes as input the name of the `hub` (which must be present). Hence one may have more than one hub. Obviously one managed can be registered only to a single `hub`.
+The `./hack/deploy_managed.sh` script optionally takes as input the name of the `hub` (which must be present). Hence one may have more than one hub. Obviously one managed cluster can be registered only to a single `hub`.
  A limitation of this small infrastructure is that all clusters must run under the same cloud provider (`minikube` or `kind`), the limitation comes directly from the scripts (kubernetes context for `minikube` and `kind` are different) and it could be removed in the future.
 
 
