@@ -31,7 +31,7 @@ docker build -t localhost:5000/open-cluster-management/registration .
 cd -
 ```
 
-```shelll
+```shell
 git clone https://github.com/open-cluster-management/work.git
 cd work
 
@@ -62,12 +62,16 @@ As soon you've the images tagged locally with `localhost:5000/open-cluster-manag
 
 ### Prerequirements
 
-Most of the needed tools should be available on a laptop, the scripts perform prerequirement checks and everything relies only on pretty standard tools except maybe cloudflare ssl tools (`cfssl` and `cfssljson`) which can be downloaded from  https://pkg.cfssl.org. Obviously you should have `kubectl`.
+Most of the needed tools should be available on a laptop, the scripts perform prerequirement checks and everything relies only on pretty standard tools except maybe cloudflare ssl tools (`cfssl` and `cfssljson`) which can be downloaded from https://pkg.cfssl.org. Obviously you should have `kubectl`.
+
+#### Resources
+
+Ensure that your docker/podman VM has at least 2 CPUs assigned to it. Otherwise you won't be able to deploy all the pods.
 
 
 ### What we're going to do
 
-1. Install the OCM hub on a local cluster (`kind` for the moment but it should work with `kind` as well) 
+1. Install the OCM hub on a local cluster (`minikube` or `kind`)
 2. Install OCM klusterlet to register cluster(s) as a managed cluster(s) on the hub
 3. Manage an application via subscription and deploy the application on managed cluster(s)
 

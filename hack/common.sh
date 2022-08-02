@@ -32,13 +32,13 @@ fi
 validate_config() {
     unameOut="$(uname -s)"
     case "${unameOut}" in
-	Linux*) # We should support all the conbinations
+	Linux*) # We should support all the combinations
 	;;
 	Darwin*)
-	    if [[ "${LOCAL_CONTAINER_ENGINE}" != "docker" ]] || [[ "${LOCAL_CLUSTER_PROVIDER}" != "kind" ]];
+	    if [[ "${LOCAL_CLUSTER_PROVIDER}" != "kind" ]];
 	    then
-		echo_red "On Mac only kind/docker is supported. Try with '-p kind -e docker'"
-		exit 1		
+		echo_red "On Mac only kind is supported. Try with '-p kind -e docker' or '-p kind -e podman'"
+		exit 1
 	    fi
 	    ;;
 	*)
@@ -94,7 +94,16 @@ deploy_image_to_cluster() {
 	    minikube cache add $image
 	    ;;
 	'kind')
-	   kind load docker-image $image --name $clustername
+        if [[ "${LOCAL_CONTAINER_ENGINE}" == "podman" ]];
+        then
+            echo_green "Workaround for kind on podman, see https://github.com/kubernetes-sigs/kind/issues/2027"
+            tmpfile=$(mktemp --suffix .tar)
+            podman save "$image" > "$tmpfile"
+            kind load image-archive temp.tar --name "$clustername"
+            rm "$tmpfile"
+        else
+	        kind load docker-image "$image" --name "$clustername"
+        fi
 	    ;;
     esac
 }
