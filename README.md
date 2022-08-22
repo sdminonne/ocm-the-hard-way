@@ -15,6 +15,7 @@ $ podman images | grep open-cluster-management
 localhost:5000/open-cluster-management/registration-operator  latest       c001a77699f0  19 hours ago   156 MB
 localhost:5000/open-cluster-management/work                   latest       a2c41f98ab52  20 hours ago   211 MB
 localhost:5000/open-cluster-management/registration           latest       60dca2e6ef71  23 hours ago   211 MB
+localhost:5000/open-cluster-management/placement              latest      5691c3d11a60  2 hours ago     211 MB
 ```
 
 you can start the scripts otheriwse you might compile the source code directly:
@@ -86,13 +87,13 @@ Container engine -> docker
 Cluster provider -> kind
 Creating cluster "hub" ...
  ✓ Ensuring node image (kindest/node:v1.20.2) 🖼
- ✓ Preparing nodes 📦  
- ✓ Writing configuration 📜 
- ✓ Starting control-plane 🕹️ 
- ✓ Installing CNI 🔌 
- ✓ Installing StorageClass 💾 
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
  Set kubectl context to "kind-hub"
-... 
+...
 deployment up and running kind-hub open-cluster-management-hub cluster-manager-registration-webhook: OK
 Hub deployed
 ```
@@ -109,11 +110,11 @@ Container engine     -> docker
 Cluster provider     -> kind
 Creating cluster "cluster1" ...
  ✓ Ensuring node image (kindest/node:v1.20.2) 🖼
- ✓ Preparing nodes 📦  
- ✓ Writing configuration 📜 
- ✓ Starting control-plane 🕹️ 
- ✓ Installing CNI 🔌 
- ✓ Installing StorageClass 💾 
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
 Set kubectl context to "kind-cluster1"
 ...
 pod up and running kind-cluster1 default hello: OK
@@ -130,9 +131,9 @@ As soon you've deployed your micro fleet of clusters you can remove everything v
 
 ```shell
 ./hack/tear_down.sh
-Managed cluster name -> 
+Managed cluster name ->
 Hub cluster name     -> hub
-Container engine     -> 
+Container engine     ->
 Cluster provider     -> kind
 Removing all clusters for kind
 Deleting cluster "cluster1" ...
